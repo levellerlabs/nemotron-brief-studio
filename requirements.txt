@@ -1,0 +1,1 @@
+# stdlib only - Python 3.9+ (urllib, json, http.server, unittest)

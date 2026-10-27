@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nemotron Brief Studio</title>
+<style>
+  :root {
+    --ink: #16211b; --paper: #f7f8f7; --card: #ffffff; --line: #dde3de;
+    --accent: #0f7b4d; --accent-soft: #e7f3ec; --warn-bg: #fff6df;
+    --warn-line: #e5c558; --warn-ink: #6b5310; --muted: #5d6b62;
+    --badge-bg: #eef1ee; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 16px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 28px 20px 80px; }
+  header { margin-bottom: 22px; }
+  h1 { font-size: 1.7rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .tagline { color: var(--muted); margin: 0; font-size: 0.98rem; }
+  .panel {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px; margin-bottom: 16px;
+  }
+  label.big { display: block; font-weight: 600; margin-bottom: 8px; }
+  textarea {
+    width: 100%; min-height: 150px; resize: vertical; padding: 12px;
+    border: 1px solid var(--line); border-radius: 8px; font: inherit;
+    background: #fcfdfc;
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .row { display: flex; gap: 14px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .depth { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .depth label { padding: 8px 14px; cursor: pointer; font-size: 0.92rem; background: var(--card); }
+  .depth input { display: none; }
+  .depth input:checked + span { color: var(--accent); font-weight: 700; }
+  .depth label:has(input:checked) { background: var(--accent-soft); }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 11px 22px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: 0.55; cursor: wait; }
+  .hint { color: var(--muted); font-size: 0.85rem; }
+  .error {
+    background: #fdeeee; border: 1px solid #e2a7a7; color: #7c2222;
+    border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 0.93rem;
+  }
+  .sample-banner {
+    background: var(--warn-bg); border: 1px solid var(--warn-line);
+    color: var(--warn-ink); border-radius: 10px; padding: 10px 14px;
+    margin-bottom: 16px; font-size: 0.95rem; display: none;
+  }
+  .sample-banner strong { font-weight: 700; }
+  #result h2 { font-size: 1.3rem; margin: 0 0 4px; }
+  .summary { color: var(--muted); margin: 0 0 10px; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tag {
+    background: var(--accent-soft); color: var(--accent); border-radius: 999px;
+    padding: 2px 10px; font-size: 0.8rem; font-weight: 600;
+  }
+  section { margin-top: 18px; }
+  section > h3 {
+    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .badge {
+    font-family: var(--mono); font-size: 0.68rem; font-weight: 500;
+    background: var(--badge-bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: 1px 8px; text-transform: none;
+    letter-spacing: 0; color: var(--ink);
+  }
+  ul.plain { margin: 0; padding-left: 20px; }
+  ul.plain li { margin-bottom: 4px; }
+  .ms {
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 10px; background: #fcfdfc;
+  }
+  .ms-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .ms-head h4 { margin: 0; font-size: 1rem; }
+  .size {
+    font-family: var(--mono); font-size: 0.7rem; font-weight: 700;
+    border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 6px; padding: 0 6px;
+  }
+  .ms p { margin: 6px 0 0; font-size: 0.94rem; color: #333d37; }
+  .ms .deps { margin-top: 6px; font-size: 0.82rem; color: var(--muted); }
+  .risk h4 { margin: 0; font-size: 0.98rem; }
+  .risk { margin-bottom: 10px; }
+  .risk .mit { color: var(--muted); font-size: 0.92rem; }
+  .attrib {
+    margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 0.75rem; color: var(--muted);
+  }
+  footer.page { margin-top: 34px; font-size: 0.85rem; color: var(--muted); }
+  footer.page code { font-family: var(--mono); font-size: 0.8rem; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Nemotron Brief Studio</h1>
+    <p class="tagline">Paste a rough project brief, get a structured plan with
+      per-section model attribution. Built on NVIDIA Nemotron open models served
+      by Nebius Token Factory.</p>
+  </header>
+
+  <div id="sample-banner" class="sample-banner" role="status">
+    <strong>Sample mode.</strong> The live model service is not connected right
+    now, so what you see below is an illustrative example of the output shape -
+    it is <strong>not</strong> model output.
+  </div>
+
+  <div class="panel">
+    <label class="big" for="brief">Project brief</label>
+    <textarea id="brief" name="brief" maxlength="20000"
+      placeholder="e.g. We need a booking page for our climbing gym. Members should be able to pick a slot, pay online and get an email confirmation. Admins need a simple day view and the ability to block slots. We have two weeks."></textarea>
+    <div class="row">
+      <div class="depth" id="depth">
+        <label><input type="radio" name="depth" value="standard" checked>
+          <span>Standard</span></label>
+        <label><input type="radio" name="depth" value="deep">
+          <span>Deep</span></label>
+      </div>
+      <button id="go">Draft the plan</button>
+      <span class="hint" id="status" aria-live="polite"></span>
+    </div>
+    <div id="err" class="error hidden"></div>
+  </div>
+
+  <div id="result" class="hidden"></div>
+
+  <footer class="page">
+    Two-stage pipeline: a large Nemotron model decomposes the brief, a small
+    Nemotron model drafts the metadata. Every section is labelled with the model
+    that produced it. Backend: <code>POST /api/plan</code>. Health:
+    <code>GET /api/health</code>.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+var SAMPLE_CODES = [
+  "nebius_key_not_configured",
+  "nebius_upstream_auth",
+  "nebius_upstream_rate_limited",
+  "nebius_upstream_error",
+  "nebius_bad_request",
+  "malformed_model_output"
+];
+
+function el(tag, cls, text) {
+  var node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined && text !== null) node.textContent = text;
+  return node;
+}
+
+function badge(text) { return el("span", "badge", text); }
+
+function esc(s) { return String(s == null ? "" : s); }
+
+function renderList(sectionTitle, items, modelLabel) {
+  var sec = el("section");
+  var h = el("h3", null, sectionTitle);
+  if (modelLabel) h.appendChild(badge(modelLabel));
+  sec.appendChild(h);
+  var ul = el("ul", "plain");
+  items.forEach(function (item) { ul.appendChild(el("li", null, esc(item))); });
+  sec.appendChild(ul);
+  return sec;
+}
+
+function renderPlan(plan) {
+  var root = el("div");
+  var head = el("div", "panel");
+  head.appendChild(el("h2", null, esc(plan.title)));
+  if (plan.summary) head.appendChild(el("p", "summary", esc(plan.summary)));
+  var tags = el("div", "tags");
+  (plan.tags || []).forEach(function (t) { tags.appendChild(el("span", "tag", esc(t))); });
+  head.appendChild(tags);
+  var attr = plan.attribution || {};
+  head.appendChild(el("div", "attrib",
+    "metadata_by: " + esc(attr.metadata_by || "n/a")));
+  root.appendChild(head);
+
+  var decompBy = attr.decomposition_by || "n/a";
+  if (plan.goals && plan.goals.length) {
+    root.appendChild(renderList("Goals", plan.goals, decompBy));
+  }
+  if (plan.scope) {
+    var scopeSec = el("section");
+    var sh = el("h3", null, "Scope");
+    sh.appendChild(badge(decompBy));
+    scopeSec.appendChild(sh);
+    if (plan.scope.in_scope && plan.scope.in_scope.length) {
+      scopeSec.appendChild(renderList("In scope", plan.scope.in_scope));
+    }
+    if (plan.scope.out_of_scope && plan.scope.out_of_scope.length) {
+      var oos = el("section");
+      oos.appendChild(el("h3", null, "Out of scope"));
+      var oul = el("ul", "plain");
+      plan.scope.out_of_scope.forEach(function (item) {
+        oul.appendChild(el("li", null, esc(item)));
+      });
+      oos.appendChild(oul);
+      scopeSec.appendChild(oos);
+    }
+    root.appendChild(scopeSec);
+  }
+  if (plan.milestones && plan.milestones.length) {
+    var msSec = el("section");
+    var mh = el("h3", null, "Milestones");
+    mh.appendChild(badge(decompBy));
+    msSec.appendChild(mh);
+    plan.milestones.forEach(function (m) {
+      var box = el("div", "ms");
+      var headRow = el("div", "ms-head");
+      headRow.appendChild(el("h4", null, esc(m.title)));
+      if (m.size) headRow.appendChild(el("span", "size", esc(m.size)));
+      box.appendChild(headRow);
+      if (m.detail) box.appendChild(el("p", null, esc(m.detail)));
+      if (m.depends_on && m.depends_on.length) {
+        box.appendChild(el("div", "deps",
+          "depends on: " + m.depends_on.join(", ")));
+      }
+      msSec.appendChild(box);
+    });
+    root.appendChild(msSec);
+  }
+  if (plan.risks && plan.risks.length) {
+    var rSec = el("section");
+    var rh = el("h3", null, "Risks");
+    rh.appendChild(badge(decompBy));
+    rSec.appendChild(rh);
+    plan.risks.forEach(function (r) {
+      var box = el("div", "risk");
+      box.appendChild(el("h4", null, esc(r.title)));
+      if (r.mitigation) box.appendChild(el("div", "mit", esc(r.mitigation)));
+      rSec.appendChild(box);
+    });
+    root.appendChild(rSec);
+  }
+  if (plan.open_questions && plan.open_questions.length) {
+    root.appendChild(renderList("Open questions", plan.open_questions, decompBy));
+  }
+  root.appendChild(el("div", "attrib",
+    "decomposition_by: " + decompBy +
+    " | metadata_by: " + esc(attr.metadata_by || "n/a") +
+    " | platform: " + esc(attr.platform || "n/a")));
+  return root;
+}
+
+function renderSample(plan) {
+  var banner = document.getElementById("sample-banner");
+  banner.style.display = "block";
+  return renderPlan(plan);
+}
+
+function setStatus(text) {
+  document.getElementById("status").textContent = text || "";
+}
+
+function showError(text) {
+  var box = document.getElementById("err");
+  box.textContent = text;
+  box.classList.remove("hidden");
+}
+
+function clearError() {
+  var box = document.getElementById("err");
+  box.textContent = "";
+  box.classList.add("hidden");
+}
+
+function sampleFor(brief) {
+  // Client-side stand-in; the API never returns fake output as live output.
+  var snippet = brief.trim().slice(0, 60) + (brief.trim().length > 60 ? "..." : "");
+  return {
+    title: snippet || "Sample brief",
+    summary: "Illustrative example of the plan shape. The live service is not " +
+      "connected, so this sample stands in - it is not model output.",
+    tags: ["sample", "illustrative", "plan"],
+    goals: [
+      "Stand-in goal: show how a brief becomes structured outcomes",
+      "Stand-in goal: demonstrate per-section model attribution"
+    ],
+    scope: {
+      in_scope: ["Sample in-scope item one", "Sample in-scope item two"],
+      out_of_scope: ["Sample exclusion (this is illustrative)"]
+    },
+    milestones: [
+      { title: "Sample milestone one", detail: "Illustrative detail.",
+        depends_on: [], size: "S" },
+      { title: "Sample milestone two", detail: "Illustrative detail.",
+        depends_on: ["Sample milestone one"], size: "M" }
+    ],
+    risks: [
+      { title: "Sample risk", mitigation: "Illustrative mitigation step." }
+    ],
+    open_questions: ["Sample open question (illustrative)"],
+    attribution: {
+      decomposition_by: "sample - not model output",
+      metadata_by: "sample - not model output",
+      platform: "none (sample mode)"
+    }
+  };
+}
+
+function submit() {
+  var brief = document.getElementById("brief").value;
+  var depthEl = document.querySelector('input[name="depth"]:checked');
+  var depth = depthEl ? depthEl.value : "standard";
+  clearError();
+  document.getElementById("sample-banner").style.display = "none";
+  if (!brief.trim()) {
+    showError("Write a brief first - even a rough paragraph works.");
+    return;
+  }
+  var btn = document.getElementById("go");
+  btn.disabled = true;
+  setStatus("Planning...");
+  fetch("/api/plan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ brief: brief, depth: depth })
+  }).then(function (resp) {
+    return resp.json().then(function (data) { return { code: resp.status, data: data }; });
+  }).then(function (pair) {
+    var resultBox = document.getElementById("result");
+    resultBox.innerHTML = "";
+    resultBox.classList.remove("hidden");
+    var data = pair.data || {};
+    if (pair.code === 200 && data.mode === "live" && data.result) {
+      resultBox.appendChild(renderPlan(data.result));
+      setStatus("Done - live model output.");
+    } else if (pair.code !== 400 && pair.code !== 413 &&
+               SAMPLE_CODES.indexOf(data.error) !== -1) {
+      resultBox.appendChild(renderSample(sampleFor(brief)));
+      setStatus("Sample mode (service unavailable).");
+    } else {
+      showError(data.message || data.error || "Request failed.");
+      setStatus("");
+    }
+  }).catch(function () {
+    showError("Network error - the plan service could not be reached.");
+    setStatus("");
+  }).finally(function () {
+    btn.disabled = false;
+  });
+}
+
+document.getElementById("go").addEventListener("click", submit);
+</script>
+</body>
+</html>
